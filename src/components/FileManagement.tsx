@@ -16,7 +16,9 @@ import {
   Eye,
   Clock,
   Grid,
-  List as ListIcon
+  List as ListIcon,
+  Pin,
+  PinOff
 } from 'lucide-react';
 import { Category, User } from '../types';
 
@@ -29,6 +31,7 @@ interface FileData {
   updated_at: string;
   file_size?: number;
   description?: string;
+  is_pinned?: boolean;
 }
 
 interface FileManagementProps {
@@ -47,7 +50,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-15T10:30:00Z',
       updated_at: '2025-01-15T14:20:00Z',
       file_size: 2048,
-      description: 'Quarterly sales performance analysis'
+      description: 'Quarterly sales performance analysis',
+      is_pinned: true
     },
     {
       id: '2',
@@ -57,7 +61,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-14T09:15:00Z',
       updated_at: '2025-01-14T16:45:00Z',
       file_size: 1536,
-      description: 'Monthly inventory tracking'
+      description: 'Monthly inventory tracking',
+      is_pinned: false
     },
     {
       id: '3',
@@ -67,7 +72,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-13T11:20:00Z',
       updated_at: '2025-01-13T17:30:00Z',
       file_size: 3072,
-      description: 'Monthly commission calculations for affiliates'
+      description: 'Monthly commission calculations for affiliates',
+      is_pinned: true
     },
     {
       id: '4',
@@ -77,7 +83,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-12T08:45:00Z',
       updated_at: '2025-01-12T15:10:00Z',
       file_size: 2560,
-      description: 'Campaign performance metrics and ROI analysis'
+      description: 'Campaign performance metrics and ROI analysis',
+      is_pinned: false
     },
     {
       id: '5',
@@ -87,7 +94,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-11T13:30:00Z',
       updated_at: '2025-01-11T18:20:00Z',
       file_size: 4096,
-      description: 'Complete customer information backup'
+      description: 'Complete customer information backup',
+      is_pinned: false
     },
     {
       id: '6',
@@ -97,7 +105,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
       created_at: '2025-01-10T07:00:00Z',
       updated_at: '2025-01-10T12:30:00Z',
       file_size: 1024,
-      description: 'Weekly KPI tracking and analysis'
+      description: 'Weekly KPI tracking and analysis',
+      is_pinned: false
     }
   ]);
 
@@ -112,6 +121,9 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
     spreadsheet_url: '',
     description: '',
   });
+
+  // Check if current user is superadmin
+  const isAdmin = currentUser.role === 'superadmin';
 
   const getCategoryName = (categoryId: string) => {
     if (!categoryId) return 'Uncategorized';
@@ -145,15 +157,20 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
     });
   }, [files, searchTerm, categoryFilter, categories]);
 
-  // Sort files by date (newest first) and separate recent files
+  // Sort files: pinned first, then by date (newest first)
   const sortedFiles = useMemo(() => {
-    return [...filteredFiles].sort((a, b) => 
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
+    return [...filteredFiles].sort((a, b) => {
+      // First sort by pinned status
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      
+      // Then sort by date (newest first)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
   }, [filteredFiles]);
 
-  const recentFiles = sortedFiles.slice(0, 3);
-  const otherFiles = sortedFiles.slice(3);
+  const pinnedFiles = sortedFiles.filter(file => file.is_pinned);
+  const unpinnedFiles = sortedFiles.filter(file => !file.is_pinned);
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'Unknown';
@@ -189,6 +206,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
         created_at: now,
         updated_at: now,
         file_size: Math.floor(Math.random() * 4000) + 500, // Random size for demo
+        is_pinned: false,
       };
       setFiles(prev => [newFile, ...prev]);
     }
@@ -224,6 +242,14 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
     }
   };
 
+  const handleTogglePin = (id: string) => {
+    setFiles(prev => prev.map(file => 
+      file.id === id 
+        ? { ...file, is_pinned: !file.is_pinned, updated_at: new Date().toISOString() }
+        : file
+    ));
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingFile(null);
@@ -246,7 +272,9 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">File Management</h1>
-            <p className="text-gray-600">Manage your spreadsheets and documents</p>
+            <p className="text-gray-600">
+              {isAdmin ? 'Manage your spreadsheets and documents' : 'View available spreadsheets and documents'}
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -271,13 +299,15 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
                 <ListIcon className="w-4 h-4" />
               </button>
             </div>
-            <button
-              onClick={handleAdd}
-              className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add File</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleAdd}
+                className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add File</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -297,12 +327,12 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
           
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg flex items-center justify-center">
+                <Pin className="w-6 h-6 text-yellow-600" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{recentFiles.length}</div>
-                <p className="text-sm text-gray-600">Recent Files</p>
+                <div className="text-2xl font-bold text-gray-900">{pinnedFiles.length}</div>
+                <p className="text-sm text-gray-600">Pinned Files</p>
               </div>
             </div>
           </div>
@@ -367,19 +397,26 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
           </div>
         </div>
 
-        {/* Recent Files Cards */}
-        {recentFiles.length > 0 && (
+        {/* Pinned Files Section */}
+        {pinnedFiles.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Files</h2>
-              <span className="text-sm text-gray-500">Last updated files</span>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                <Pin className="w-5 h-5 text-yellow-600" />
+                <span>Pinned Files</span>
+              </h2>
+              <span className="text-sm text-gray-500">{pinnedFiles.length} pinned files</span>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentFiles.map((file) => (
-                <div key={file.id} className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+              {pinnedFiles.map((file) => (
+                <div key={file.id} className="bg-white rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6 hover:shadow-lg transition-shadow relative">
+                  <div className="absolute top-3 right-3">
+                    <Pin className="w-4 h-4 text-yellow-600" />
+                  </div>
+                  
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 flex-1 pr-6">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center">
                         <FileText className="w-6 h-6 text-purple-600" />
                       </div>
@@ -413,20 +450,29 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
                       <span className="text-sm font-medium">Open Sheet</span>
                     </button>
                     
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleEdit(file)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(file.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleTogglePin(file.id)}
+                          className="p-2 text-yellow-600 hover:text-yellow-700 transition-colors"
+                          title="Unpin file"
+                        >
+                          <PinOff className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(file)}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(file.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -435,11 +481,11 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
         )}
 
         {/* Other Files List */}
-        {otherFiles.length > 0 && (
+        {unpinnedFiles.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">All Files</h2>
-              <span className="text-sm text-gray-500">{otherFiles.length} files</span>
+              <span className="text-sm text-gray-500">{unpinnedFiles.length} files</span>
             </div>
             
             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -455,7 +501,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {otherFiles.map((file) => (
+                    {unpinnedFiles.map((file) => (
                       <tr key={file.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -490,20 +536,31 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
                             >
                               <ExternalLink className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleEdit(file)}
-                              className="text-blue-600 hover:text-blue-700 transition-colors"
-                              title="Edit File"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(file.id)}
-                              className="text-red-600 hover:text-red-700 transition-colors"
-                              title="Delete File"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  onClick={() => handleTogglePin(file.id)}
+                                  className="text-gray-400 hover:text-yellow-600 transition-colors"
+                                  title="Pin File"
+                                >
+                                  <Pin className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(file)}
+                                  className="text-blue-600 hover:text-blue-700 transition-colors"
+                                  title="Edit File"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(file.id)}
+                                  className="text-red-600 hover:text-red-700 transition-colors"
+                                  title="Delete File"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -524,11 +581,13 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
             </h3>
             <p className="text-gray-600 mb-4">
               {files.length === 0 
-                ? 'Get started by adding your first file'
+                ? isAdmin 
+                  ? 'Get started by adding your first file'
+                  : 'No files have been added yet'
                 : 'Try adjusting your search or filter criteria'
               }
             </p>
-            {files.length === 0 && (
+            {files.length === 0 && isAdmin && (
               <button
                 onClick={handleAdd}
                 className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
@@ -540,8 +599,8 @@ const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser
         )}
       </div>
 
-      {/* Modal */}
-      {showModal && (
+      {/* Modal - Only show for admin */}
+      {showModal && isAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
