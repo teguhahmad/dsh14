@@ -40,75 +40,8 @@ interface FileManagementProps {
 }
 
 const FileManagement: React.FC<FileManagementProps> = ({ categories, currentUser }) => {
-  // Sample data - in real app this would come from props or API
-  const [files, setFiles] = useState<FileData[]>([
-    {
-      id: '1',
-      name: 'Sales Report Q1 2025',
-      category_id: categories[0]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/1234567890',
-      created_at: '2025-01-15T10:30:00Z',
-      updated_at: '2025-01-15T14:20:00Z',
-      file_size: 2048,
-      description: 'Quarterly sales performance analysis',
-      is_pinned: true
-    },
-    {
-      id: '2',
-      name: 'Product Inventory January',
-      category_id: categories[1]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/0987654321',
-      created_at: '2025-01-14T09:15:00Z',
-      updated_at: '2025-01-14T16:45:00Z',
-      file_size: 1536,
-      description: 'Monthly inventory tracking',
-      is_pinned: false
-    },
-    {
-      id: '3',
-      name: 'Commission Calculation December',
-      category_id: categories[0]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/1122334455',
-      created_at: '2025-01-13T11:20:00Z',
-      updated_at: '2025-01-13T17:30:00Z',
-      file_size: 3072,
-      description: 'Monthly commission calculations for affiliates',
-      is_pinned: true
-    },
-    {
-      id: '4',
-      name: 'Marketing Campaign Results',
-      category_id: categories[2]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/5566778899',
-      created_at: '2025-01-12T08:45:00Z',
-      updated_at: '2025-01-12T15:10:00Z',
-      file_size: 2560,
-      description: 'Campaign performance metrics and ROI analysis',
-      is_pinned: false
-    },
-    {
-      id: '5',
-      name: 'Customer Database Backup',
-      category_id: categories[1]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/9988776655',
-      created_at: '2025-01-11T13:30:00Z',
-      updated_at: '2025-01-11T18:20:00Z',
-      file_size: 4096,
-      description: 'Complete customer information backup',
-      is_pinned: false
-    },
-    {
-      id: '6',
-      name: 'Weekly Performance Metrics',
-      category_id: categories[0]?.id || '',
-      spreadsheet_url: 'https://docs.google.com/spreadsheets/d/4433221100',
-      created_at: '2025-01-10T07:00:00Z',
-      updated_at: '2025-01-10T12:30:00Z',
-      file_size: 1024,
-      description: 'Weekly KPI tracking and analysis',
-      is_pinned: false
-    }
-  ]);
+  // Files state - starts empty, will be populated from database in real implementation
+  const [files, setFiles] = useState<FileData[]>([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
